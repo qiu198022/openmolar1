@@ -139,8 +139,8 @@ if "win" in sys.platform:
     LOGGER.info("Windows OS detected - modifying settings")
     SHARE_DIR = os.path.join(os.environ.get("ProgramFiles", ""), "openmolar")
     global_cflocation = os.path.join(SHARE_DIR, "openmolar.conf")
-    LOCALFILEDIRECTORY = os.path.join(os.environ.get("HOMEPATH", ""),
-                                      ".openmolar")
+    LOCALFILEDIRECTORY = os.path.join(os.environ.get("APPDATA", ""),
+                                      "openmolar")
 else:
     WINDOWS = False
     if "linux" not in sys.platform:
@@ -148,9 +148,11 @@ else:
             "unknown system platform (mac?) - defaulting to linux settings")
     SHARE_DIR = os.path.join("/usr", "share", "openmolar")
     global_cflocation = '/etc/openmolar/openmolar.conf'
-    LOCALFILEDIRECTORY = os.path.join(os.environ.get("HOME"), ".openmolar")
+    LOCALFILEDIRECTORY = os.path.join(os.environ.get("HOME", ""), ".openmolar")
 
 if os.path.isfile(global_cflocation):
+    # if a system wide user file is found, this is used preferentially.
+    # this is for security reasons.
     cflocation = global_cflocation
 else:
     cflocation = os.path.join(LOCALFILEDIRECTORY, "openmolar.conf")
@@ -171,8 +173,11 @@ if not os.path.exists(DOCS_DIRECTORY):
 appt_shortcut_file = os.path.join(LOCALFILEDIRECTORY,
                                   "appointment_shortcuts.xml")
 if not os.path.isfile(appt_shortcut_file):
-    shutil.copy(os.path.join(RESOURCE_DIR, "appointment_shortcuts.xml"),
-                appt_shortcut_file)
+    try:
+        shutil.copy(os.path.join(RESOURCE_DIR, "appointment_shortcuts.xml"),
+                    appt_shortcut_file)
+    except FileNotFoundError:
+        LOGGER.exception("Your Resource files are incomplete!")
 
 stylesheet = "file://%s" % os.path.join(RESOURCE_DIR, "style.css")
 printer_png = "file://%s" % os.path.join(RESOURCE_DIR, "icons", "ps.png")
@@ -186,7 +191,7 @@ def win_url(url):
     '''
     convert the windows filepaths to unix style filepaths
     '''
-    return url.replace("://", ":///").replace(" ", "%20").replace("\\", "/")
+    return url.replace("://", ":///").replace("\\", "/")
 
 if WINDOWS:
     resources_path = win_url(resources_path)
