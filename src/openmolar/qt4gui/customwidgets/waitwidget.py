@@ -21,34 +21,63 @@
 # #                                                                         # #
 # ########################################################################### #
 
-import logging
-from openmolar import connect
+'''
+provides WaitWidget - a custom widget which oscillates if the
+application is busy
+'''
 
-LOGGER = logging.getLogger("openmolar")
+from PyQt5 import QtWidgets
+from PyQt5 import QtCore
+from PyQt5 import QtGui
 
-QUERY = "select distinct status from new_patients"
 
+class WaitWidget(QtWidgets.QWidget):
 
-class DistinctStatuses(object):
-    _distinct_statuses = None
+    '''
+    a custom widget which oscillates if the application is busy
+    '''
+    FORWARDS = 1
+    BACKWARDS = -1
+    blob_width = 10
 
-    @property
-    def DISTINCT_STATUSES(self):
-        if self._distinct_statuses is None:
-            db = connect.connect()
-            cursor = db.cursor()
-            cursor.execute(QUERY)
-            rows = cursor.fetchall()
-            cursor.close()
+    def __init__(self, parent=None):
+        QtWidgets.QWidget.__init__(self, parent)
+        self.step = 0
+        self.direction = self.FORWARDS
+        self.brush = self.palette().dark()
+        self.pen = QtGui.QPen(self.brush, 0)
+        self.timer = QtCore.QBasicTimer()
 
-            self._distinct_statuses = set(["", _("DECEASED")])
-            for row in sorted(rows):
-                if row[0] not in (None, _("BAD DEBT")):
-                    self._distinct_statuses.add(row[0])
+    def sizeHint(self):
+        return QtCore.QSize(300, 20)
 
-        return sorted(self._distinct_statuses)
+    def showEvent(self, event):
+        self.timer.start(10, self)
+        self.blob_width = self.width() * 0.2
+
+    def hideEvent(self, event):
+        self.timer.stop()
+
+    def paintEvent(self, event):
+        xpos = self.step  * self.width() / 100
+        rect = QtCore.QRectF(xpos - (self.blob_width / 2),  0,
+                             self.blob_width, self.height())
+        painter = QtGui.QPainter(self)
+        painter.setBrush(self.brush)
+        painter.setPen(self.pen)
+        painter.drawRoundedRect(rect, 5, 5)
+
+    def timerEvent(self, event):
+        if self.step == 0:
+            self.direction = self.FORWARDS
+        elif self.step == 100:
+            self.direction = self.BACKWARDS
+        self.step += self.direction
+        self.update()
 
 
 if __name__ == "__main__":
-    ds = DistinctStatuses()
-    print(ds.DISTINCT_STATUSES)
+    app = QtWidgets.QApplication([])
+    widg = WaitWidget()
+    widg.show()
+    app.exec_()

@@ -44,8 +44,8 @@ SUPERVISOR = "c1219df26de403348e211a314ff2fce58aa6e28d"
 
 DBNAME = "default"
 
-# updated 27th May 2015
-CLIENT_SCHEMA_VERSION = "3.3"
+# updated 13th June 2016
+CLIENT_SCHEMA_VERSION = "3.4"
 
 DB_SCHEMA_VERSION = "unknown"
 
@@ -395,7 +395,7 @@ def pencify(input_):
     safely convert "0.29" to 29, or "1.50" to 150 etc..
     in python int(0.29 * 100) is 28!
     '''
-    m = re.match("(\d+)?\.?(\d)?(\d)?", input_)
+    m = re.match(" *(\d+)?\.?(\d)?(\d)?", input_)
     if not m:
         return 0
     return int("%s%s%s" % (
@@ -833,11 +833,11 @@ def force_reconnect():
     '''
     user has changed server!
     '''
-    from openmolar import connect
-    if connect.mainconnection:
+    from openmolar.connect import params
+    if params.has_connection:
         LOGGER.warning("closing connection to previously chosen database")
-        connect.mainconnection.close()
-    connect.params.reload()
+        params._connection.close()
+    params.reload()
 
 
 def initiateUsers(changed_server=False):
